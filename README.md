@@ -1,4 +1,4 @@
-# HydroPi
+# HydroPi (development)
 
 HydroPi is a Raspberry Pi-based system designed to monitor and sample mead batch data in real-time. It collects gravity and temperature readings using smart hydrometers or sensors and sends the data to a Firebase backend for live updates and tracking.
 
