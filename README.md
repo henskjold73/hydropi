@@ -1,14 +1,34 @@
-# HydroPi (development)
+# HydroPi
 
-HydroPi is a Raspberry Pi-based system designed to monitor and sample mead batch data in real-time. It collects gravity and temperature readings using smart hydrometers or sensors and sends the data to a Firebase backend for live updates and tracking.
+HydroPi is a Raspberry Pi-based system designed for monitoring mead batches. It collects gravity and temperature data using sensors or smart hydrometers and sends the data to a Firebase API for real-time updates.
 
 ## Features
-- Collects gravity and temperature readings from smart hydrometers or custom sensors.
-- Sends real-time data to a Firebase Function API endpoint.
+- Gravity and temperature monitoring.
+- Real-time data updates to a Firebase backend.
 - Easy setup with automated installation scripts.
-- Modular and extensible codebase for additional sensors or data points.
+- Modular and extensible for additional sensors or data points.
 
-## Use Case
-HydroPi is perfect for meaderies or hobbyists looking to integrate technology into their brewing process. It simplifies batch monitoring and ensures accurate, up-to-date records for better quality control.
+## Setup
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/henskjold73/hydropi.git
+   cd hydropi
+   ```
 
----
+2. Run the setup script:
+   ```bash
+   bash setup/setup.sh
+   ```
+
+3. Edit `scripts/config.py` to include your API URL and API key.
+
+4. Start the script:
+   ```bash
+   python3 scripts/main.py
+   ```
+
+## Contributing
+Contributions are welcome! Feel free to fork this repository, make changes, and submit a pull request.
+
+## License
+This project is licensed under the MIT License. See the `LICENSE` file for details.
