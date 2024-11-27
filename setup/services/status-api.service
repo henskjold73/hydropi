@@ -1,0 +1,13 @@
+[Unit]
+Description=HydroPi Status API
+After=network.target
+
+[Service]
+ExecStart=/home/horrible/hydropi/venv/bin/python /home/horrible/hydropi/scripts/status_api.py
+WorkingDirectory=/home/horrible/hydropi
+Restart=always
+User=horrible
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

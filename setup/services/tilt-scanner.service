@@ -1,0 +1,16 @@
+[Unit]
+Description=Tilt Scanner Service
+After=network.target
+
+[Service]
+ExecStart=/home/horrible/hydropi/venv/bin/python /home/horrible/hydropi/scripts/scan.py >> /home/horrible/hydropi/logs/scan.log 2>&1
+WorkingDirectory=/home/horrible/hydropi
+Restart=always
+User=horrible
+Environment=PYTHONUNBUFFERED=1
+LimitNOFILE=4096
+MemoryLimit=500M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

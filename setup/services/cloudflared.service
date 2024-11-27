@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared tunnel run norway-hydropi
+Restart=always
+User=root
+WorkingDirectory=/root/.cloudflared
+
+[Install]
+WantedBy=multi-user.target

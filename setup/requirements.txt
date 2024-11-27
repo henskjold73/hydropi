@@ -1,3 +1,6 @@
 bleak
 requests
 httpx
+flask
+psutil
+flask-cors

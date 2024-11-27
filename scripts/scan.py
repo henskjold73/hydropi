@@ -133,7 +133,7 @@ async def main():
         await post_results(scan_results)
 
         print(f"Waiting for {config.SCAN_INTERVAL // 60} minutes...")
-        await asyncio.sleep(config.SCAN_INTERVAL)
+        await asyncio.sleep(config.SCAN_INTERVAL - config.SCAN_DURATION)
 
 # Run the main loop
 asyncio.run(main())
