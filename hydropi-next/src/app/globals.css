@@ -10,3 +10,25 @@ body {
   align-items: center; /* Center content vertically */
   height: 100vh; /* Full viewport height */
 }
+
+.flex{
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+}
+
+.tilt {
+  border-radius: 8px;
+  box-shadow: #666 5px 5px 8px; 
+  height: fit-content;
+  height: 100px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: baseline;
+  padding:8px;
+
+  font-size: 48px;
+  font-weight: 600;
+}

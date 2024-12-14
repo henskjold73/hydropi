@@ -1,0 +1,22 @@
+{
+    "message": "Flattened data",
+    "flattened_data": {
+        "name": "horrible-iSpindel-white01",
+        "ID": 6595341,
+        "angle": 50.37838,
+        "temperature": 25.3125,
+        "battery": 4.332638,
+        "gravity": 1.044227,
+        "RSSI": -72,
+        "interval": 900
+    }
+}
+{
+    "message": "Request forwarded successfully",
+    "external_status": 200,
+    "external_response": {
+        "success": true,
+        "message": "Data registered successfully.",
+        "documentId": "t9PtNzTWUQJwU1IMnsUC"
+    }
+}

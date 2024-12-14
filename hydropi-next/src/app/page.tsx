@@ -18,6 +18,8 @@ export default function Home() {
   const [data, setData] = useState<any[]>([]);
   const [uptime, setUptime] = useState<string>("Loading...");
   const [services, setServices] = useState<any[]>([]);
+
+  const [tilts, setTilts] = useState<any>();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function Home() {
     // Fetch data from the status API
     const fetchData = async () => {
       try {
-        const response = await fetch("https://api-norway.hydropi.io/status");
+        const response = await fetch(`https://api-norway.hydropi.io/status?cacheBust=${Date.now()}`);
         const result = await response.json();
 
         // Extract memory data and calculate usage percentage
@@ -37,19 +39,19 @@ export default function Home() {
         const chartData: any = [
           {
             name: "Temperature",
-            value: result.temperature,
+            value: Math.round(result.temperature),
             unit: "°C",
             max: 75, // Example threshold for temperature
           },
           {
             name: "CPU Usage",
-            value: result.cpu_usage,
+            value: Math.round(result.cpu_usage),
             unit: "%",
             max: 80, // Example threshold for CPU usage
           },
           {
             name: "Memory Usage",
-            value: parseFloat(memoryPercent),
+            value: Math.round(parseFloat(memoryPercent)),
             unit: "%",
             max: 85, // Example threshold for memory usage
           },
@@ -61,6 +63,7 @@ export default function Home() {
 
         // Set services
         setServices(result.services || []);
+        setTilts(result.tilt_results)
       } catch (error) {
         console.error("Error fetching status data:", error);
         setUptime("Error fetching uptime");
@@ -144,7 +147,7 @@ export default function Home() {
   }
 
   return (
-    <div style={{ textAlign: "center", width: "80%", margin: "0 auto" }}>
+    <div style={{ textAlign: "center", width: "80%",height: "100vh", margin: "0 auto", position: "relative" }}>
       <h1>HydroPi Status</h1>
       <p style={{ marginBottom: "20px", fontSize: "18px", fontWeight: "bold" }}>
         Uptime: {uptime}
@@ -176,7 +179,8 @@ export default function Home() {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div style={{ marginTop: "20px" }}>
+
+      <div style={{ marginTop: "20px",}}>
         <h2>Service Status</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
           {services.map((service) => (
@@ -191,6 +195,22 @@ export default function Home() {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="flex">
+        {
+          Object.keys(tilts)?.map((id)=> {
+            const tilt = tilts[id];
+            
+            return<div className="tilt" style={{backgroundColor: tilt.color.toLowerCase()}} key={id}>
+              <div>
+              {tilt.avg_gravity.toFixed(3)}</div>
+              <div style={{width: "100%", textAlign: "end", color: "#888"}}>
+              {tilt.avg_temp_c.toFixed(1)}°C</div>
+              </div>})
+        }
+
+      
       </div>
     </div>
   );

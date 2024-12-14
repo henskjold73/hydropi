@@ -1,0 +1,16 @@
+{
+    "bb30c5b14b44b5121370f02d74de0044": {
+        "color": "Black",
+        "avg_gravity": 0.998,
+        "avg_temp_c": 20.0,
+        "gravity_stddev": 0.0,
+        "temp_stddev": 0.0
+    },
+    "bb30c5b14b44b5121370f02d74de0043": {
+        "color": "Black",
+        "avg_gravity": 0.998,
+        "avg_temp_c": 19.4,
+        "gravity_stddev": 0.0,
+        "temp_stddev": 0.0
+    }
+}
