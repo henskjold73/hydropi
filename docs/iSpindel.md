@@ -1,6 +1,6 @@
-# iSpindel HydropPi Configuration Guide
+# iSpindel HydroPi Configuration Guide
 
-This guide explains how to configure your iSpindel to send data to a HydropPi endpoint, which posts it to firebase. We use firebase and Producery, you can of couarse rewrite the flask endpoint to post to another endpoint. There are other guids to help you connect to Brewfather and similar applications availabel at iSpndel home page.
+This guide explains how to configure your iSpindel to send data to a HydroPi endpoint, which posts it to Firebase. We use Firebase and Producery, but you can rewrite the Flask endpoint to post to another service. There are other guides available to help you connect to Brewfather and similar applications at the [iSpindel homepage](https://www.ispindel.de/docs/README_en.html).
 
 ---
 
@@ -33,14 +33,17 @@ This guide explains how to configure your iSpindel to send data to a HydropPi en
 ### Step 4: Configure HTTP Endpoint
 
 1. After saving the WiFi configuration, return to the iSpindel configuration page (`http://192.168.4.1`).
+
 2. Select **"Configuration"** from the menu.
+
 3. Under the **Service Type** dropdown, select `HTTP`.
+
 4. Fill in the following fields:
 
-   - **Name**: The name of the iSpindel (e.g., `horrible-ispindel-white01` or other).
+   - **Name**: The name of the iSpindel (e.g., `horrible-ispindel-white01`).
    - **Interval**: How often it posts readings (e.g., `10` for testing and `7200` for production).
-   - **Server Address**: The base URL of your HTTP endpoint (e.g., `hydropi.local` or ip).
-   - **Port**: Specify the port for your HTTP server (e.g., `5000` for HydroPi, `80` for HTTP or `443` for HTTPS).
+   - **Server Address**: The base URL of your HTTP endpoint (e.g., `hydropi.local` or IP address).
+   - **Port**: Specify the port for your HTTP server (e.g., `5000` for HydroPi, `80` for HTTP, or `443` for HTTPS).
    - **Path**: The specific endpoint path to send data to (e.g., `/<tenant>/<api-key>`).
 
    Example:
@@ -66,13 +69,13 @@ The iSpindel sends data in JSON format. Below is an example payload:
 
 ```json
 {
-  "name": "horrible-ispindel-white01",
-  "ID": 1234567,
-  "angle": 87.65,
-  "temperature": 20.45,
-  "battery": 3.87,
-  "gravity": 1.042,
-  "interval": 10
+"name": "horrible-ispindel-white01",
+"ID": 1234567,
+"angle": 87.65,
+"temperature": 20.45,
+"battery": 3.87,
+"gravity": 1.042,
+"interval": 10
 }
 ```
 ### Field Descriptions:
