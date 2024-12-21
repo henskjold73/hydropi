@@ -150,6 +150,34 @@ def process_collected_data():
             pass  # Handle case where there are insufficient values for stddev
     return results
 
+def has_significant_changes(current_data, previous_data):
+    """
+    Check if there are significant changes in gravity or temperature.
+    
+    Parameters:
+    - current_data: The latest scan results.
+    - previous_data: The last sent data.
+    
+    Returns:
+    - True if there are significant changes; False otherwise.
+    """
+    if not previous_data:  # No previous data means changes exist
+        return True
+
+    for uuid, current_values in current_data.items():
+        if uuid not in previous_data:
+            # New UUID detected
+            return True
+
+        previous_values = previous_data[uuid]
+        gravity_changed = current_values["avg_gravity"] != previous_values["avg_gravity"]
+        temp_changed = abs(current_values["avg_temp_c"] - previous_values["avg_temp_c"]) > 1
+
+        if gravity_changed or temp_changed:
+            return True
+
+    return False
+
 async def post_results(results):
     """
     Post the processed results to the endpoint, respecting configuration settings.
@@ -173,7 +201,7 @@ async def post_results(results):
     current_time = datetime.now()
 
     # Check if data has changed
-    data_changed = results != last_sent_data
+    data_changed = has_significant_changes(results, last_sent_data)
 
     # Check time threshold
     if last_sent_time:
