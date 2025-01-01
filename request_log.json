@@ -20,3 +20,17 @@
         "documentId": "2jGXO65LK4TwPgDbfbwt"
     }
 }
+{
+    "message": "Saved request data to /home/horrible/hydropi/horrible-iSpindel-white01.json"
+}
+{
+    "message": "Request forwarded successfully",
+    "details": {
+        "status_code": 200,
+        "response": {
+            "success": true,
+            "message": "Data registered successfully.",
+            "documentId": "Xa6vyr84tUbmKB4U7pKW"
+        }
+    }
+}
