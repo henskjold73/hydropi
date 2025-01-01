@@ -3,11 +3,11 @@
     "flattened_data": {
         "name": "horrible-iSpindel-white01",
         "ID": 6595341,
-        "angle": 88.39069,
-        "temperature": 21.4375,
-        "battery": 4.322211,
-        "gravity": 1.114253,
-        "RSSI": -47,
+        "angle": 25.05122,
+        "temperature": 18.5625,
+        "battery": 4.087591,
+        "gravity": 1.000617,
+        "RSSI": -55,
         "interval": 900
     }
 }
@@ -17,6 +17,6 @@
     "external_response": {
         "success": true,
         "message": "Data registered successfully.",
-        "documentId": "cXmz3RoXRNGNK9ouwUT7"
+        "documentId": "2jGXO65LK4TwPgDbfbwt"
     }
 }

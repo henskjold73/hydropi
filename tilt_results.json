@@ -1,9 +1,9 @@
 {
-    "bb30c5b14b44b5121370f02d74de0044": {
+    "bb30c5b14b44b5121370f02d74de0042": {
         "color": "Black",
         "avg_gravity": 0.998,
-        "avg_temp_c": 20.0,
-        "gravity_stddev": 0.0,
+        "avg_temp_c": 18.9,
+        "gravity_stddev": 0.0004670993664969142,
         "temp_stddev": 0.0
     }
 }

@@ -60,67 +60,99 @@ def flatten_request_data(json_data):
 @app.route("/ispindel/<tenant>/<apikey>", methods=["POST"])
 def forward_request(tenant, apikey):
     """
-    Forward the flattened request data to the specified external URL and update the log file.
-    """    
-
+    Flatten incoming iSpindel data, save it to a JSON file named <name>.json,
+    compare gravity values, forward it to an external URL if necessary, and log the process.
+    """
     try:
-         # Clear the log file at the start
-        with open(LOG_FILE, "w") as log_file:  # Write mode will clean out the file
-            log_file.truncate(0)  # Ensure the file is cleared out
-        # Get and flatten the incoming JSON payload
+        # Parse the incoming JSON payload
         incoming_json = request.get_json(silent=True)
         if not incoming_json:
-            log_data = {"error": "Invalid or missing JSON payload"}
-            with open(LOG_FILE, "w") as log_file:
-                json.dump(log_data, log_file, indent=4)
-            return jsonify(log_data), 400
+            log_error("Invalid or missing JSON payload")
+            return jsonify({"error": "Invalid or missing JSON payload"}), 400
 
-        # Ensure 'name' is in the JSON body
+        # Validate and extract the required 'name' field
         name = incoming_json.get("name")
-        external_url = f"https://ispindelfunction-ogbfqlrosa-ew.a.run.app/{tenant}/{apikey}/{name}"
         if not name:
-            log_data = {"error": "'name' is required in the body"}
-            with open(LOG_FILE, "w") as log_file:
-                json.dump(log_data, log_file, indent=4)
-            return jsonify(log_data), 400
+            log_error("'name' is required in the body")
+            return jsonify({"error": "'name' is required in the body"}), 400
 
+        # Flatten the incoming JSON data
         flattened_data = flatten_request_data(incoming_json)
+        new_gravity = round(flattened_data.get("gravity", 0), 2)
 
-        # Log the flattened data before forwarding
-        log_data = {
-            "message": "Flattened data",
-            "flattened_data": flattened_data
-        }
-        with open(LOG_FILE, "a") as log_file:  # Append instead of overwrite
-            json.dump(log_data, log_file, indent=4)
-            log_file.write("\n")  # Add a newline for better formatting
+        # Filepath for the <name>.json file
+        filename = f"/home/horrible/hydropi/{name}.json"
 
-        # Forward the flattened data to the external URL
+        # Check the previous gravity value
+        previous_gravity = None
+        if os.path.exists(filename):
+            with open(filename, "r") as file:
+                try:
+                    previous_data = json.load(file)
+                    previous_gravity = round(previous_data.get("gravity", 0), 2)
+                except Exception as e:
+                    log_error(f"Error reading previous data from {filename}", str(e))
+
+        # Compare new and previous gravity values
+        if previous_gravity == new_gravity:
+            log_info(f"No significant change in gravity for {name}. Skipping forward.")
+            return jsonify({"message": "No change in gravity. Request not forwarded."}), 200
+
+        # Save the flattened data to a JSON file
+        with open(filename, "w") as file:
+            json.dump(flattened_data, file, indent=4)
+
+        # Log the save action
+        log_info(f"Saved request data to {filename}")
+
+        # Construct the external URL
+        external_url = f"https://ispindelfunction-ogbfqlrosa-ew.a.run.app/{tenant}/{apikey}/{name}"
+
+        # Forward the request to the external service
         response = requests.post(
             external_url,
             json=flattened_data,
             headers={"Content-Type": "application/json"}
         )
 
-        # Update the log file with response details
-        log_data = {
-            "message": "Request forwarded successfully",
-            "external_status": response.status_code,
-            "external_response": response.json() if response.status_code == 200 else "Error in response"
-        }
-        with open(LOG_FILE, "a") as log_file:
-            json.dump(log_data, log_file, indent=4)
-            log_file.write("\n")
+        # Log the response details
+        external_response = (
+            response.json() if response.status_code == 200 else "Error in response"
+        )
+        log_info("Request forwarded successfully", {
+            "status_code": response.status_code,
+            "response": external_response
+        })
 
-        # Return the response from the external service
-        return jsonify(log_data), response.status_code
+        return jsonify({"message": "Request forwarded", "status": response.status_code}), response.status_code
 
     except requests.RequestException as e:
-        log_data = {"error": "Failed to forward request", "details": str(e)}
-        with open(LOG_FILE, "a") as log_file:
-            json.dump(log_data, log_file, indent=4)
-            log_file.write("\n")
-        return jsonify(log_data), 500
+        log_error("Failed to forward request", str(e))
+        return jsonify({"error": "Failed to forward request", "details": str(e)}), 500
+
+
+def log_error(message, details=None):
+    """
+    Log an error message with optional details.
+    """
+    log_data = {"error": message}
+    if details:
+        log_data["details"] = details
+    with open(LOG_FILE, "a") as log_file:
+        json.dump(log_data, log_file, indent=4)
+        log_file.write("\n")
+
+
+def log_info(message, details=None):
+    """
+    Log an informational message with optional details.
+    """
+    log_data = {"message": message}
+    if details:
+        log_data["details"] = details
+    with open(LOG_FILE, "a") as log_file:
+        json.dump(log_data, log_file, indent=4)
+        log_file.write("\n")
 
 
 @app.route("/status", methods=["GET"])
