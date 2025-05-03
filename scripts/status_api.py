@@ -78,7 +78,7 @@ def forward_request(tenant, apikey):
 
         # Flatten the incoming JSON data
         flattened_data = flatten_request_data(incoming_json)
-        new_gravity = round(flattened_data.get("gravity", 0), 2)
+        new_gravity = round(flattened_data.get("gravity", 0), 3)
 
         # Filepath for the <name>.json file
         filename = f"/home/horrible/hydropi/{name}.json"
@@ -89,7 +89,7 @@ def forward_request(tenant, apikey):
             with open(filename, "r") as file:
                 try:
                     previous_data = json.load(file)
-                    previous_gravity = round(previous_data.get("gravity", 0), 2)
+                    previous_gravity = round(previous_data.get("gravity", 0), 3)
                 except Exception as e:
                     log_error(f"Error reading previous data from {filename}", str(e))
 
