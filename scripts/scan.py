@@ -6,6 +6,7 @@ import statistics
 import httpx  # For sending HTTP requests
 import json  # For writing results to a file
 import config
+import queue as offline_queue
 import stats
 
 # Known Tilt hydrometer IDs
@@ -246,6 +247,7 @@ async def post_results(results):
                     print(f"Failed to post data for {device['color']}: {response.status_code} - {response.text}")
             except httpx.RequestError as e:
                 print(f"An error occurred while posting data for {device['color']}: {e}")
+                offline_queue.enqueue(device['color'], payload['avg_gravity'], payload['avg_temp_c'])
 
 
 
@@ -272,6 +274,10 @@ async def main():
 
         # Write results to a file
         write_results_to_file(scan_results)
+
+        # Flush any readings queued while offline
+        async with httpx.AsyncClient() as client:
+            await offline_queue.flush(client)
 
         # Post results to the endpoint
         await post_results(scan_results)
