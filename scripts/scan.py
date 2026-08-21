@@ -6,6 +6,7 @@ import statistics
 import httpx  # For sending HTTP requests
 import json  # For writing results to a file
 import config
+import stats
 
 # Known Tilt hydrometer IDs
 TILT_MANUFACTURER_IDS = {
@@ -274,6 +275,10 @@ async def main():
 
         # Post results to the endpoint
         await post_results(scan_results)
+
+        # Post Pi health stats
+        async with httpx.AsyncClient() as client:
+            await stats.post_stats(client)
 
         print(f"Waiting for {config.SCAN_INTERVAL // 60} minutes...")
         await asyncio.sleep(config.SCAN_INTERVAL - config.SCAN_DURATION)
