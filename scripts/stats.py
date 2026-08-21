@@ -1,3 +1,4 @@
+import socket
 import time
 import httpx
 import psutil
@@ -19,6 +20,7 @@ def collect() -> dict:
         "memory_percent": round(psutil.virtual_memory().percent, 1),
         "cpu_temp_c": get_cpu_temp(),
         "uptime_seconds": int(time.time() - psutil.boot_time()),
+        "hostname": socket.gethostname(),
     }
 
 
