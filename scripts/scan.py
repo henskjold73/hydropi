@@ -10,13 +10,13 @@ import config
 # Known Tilt hydrometer IDs
 TILT_MANUFACTURER_IDS = {
     "Red": "a495bb10c5b14b44b5121370f02d74de",
-    "Green": "a495bb20c5b14b5121370f02d74de",
-    "Black": "a495bb30c5b14b5121370f02d74de",
-    "Purple": "a495bb40c5b14b5121370f02d74de",
-    "Orange": "a495bb50c5b14b5121370f02d74de",
-    "Blue": "a495bb60c5b14b5121370f02d74de",
-    "Yellow": "a495bb70c5b14b5121370f02d74de",
-    "Pink": "a495bb80c5b14b5121370f02d74de",
+    "Green": "a495bb20c5b14b44b5121370f02d74de",
+    "Black": "a495bb30c5b14b44b5121370f02d74de",
+    "Purple": "a495bb40c5b14b44b5121370f02d74de",
+    "Orange": "a495bb50c5b14b44b5121370f02d74de",
+    "Blue": "a495bb60c5b14b44b5121370f02d74de",
+    "Yellow": "a495bb70c5b14b44b5121370f02d74de",
+    "Pink": "a495bb80c5b14b44b5121370f02d74de",
 }
 
 RESULTS_FILE = "/home/horrible/hydropi/tilt_results.json"
@@ -184,13 +184,15 @@ async def post_results(results):
     """
     global last_sent_data, last_sent_time
 
+    # Skip entirely when no Tilt is in range
+    if not results:
+        print("No Tilt devices detected — skipping API post.")
+        return
+
     # Load last sent time if not already set
     if last_sent_time is None:
         print("Loading last sent time from file...")
         last_sent_time = load_last_sent_time()
-
-    # Initialize data_changed
-    data_changed = False
 
     # If last_sent_data is None, attempt to load it from the results file
     if last_sent_data is None:
@@ -214,7 +216,6 @@ async def post_results(results):
     else:
         print("First API request. Sending data.")
 
-
     print(f"Last Sent Data: {last_sent_data}")
     print(f"Current Results: {results}")
     print(f"Data Changed: {data_changed}")
@@ -223,22 +224,27 @@ async def post_results(results):
     else:
         print("No previous send time recorded.")
 
-    # API request logic
+    # POST one flat payload per detected device
     endpoint = f"{config.API_URL}/{config.TENANT_ID}/{config.API_KEY}"
     print(endpoint)
     async with httpx.AsyncClient() as client:
-        try:
-            print("Sending data to API:", results)
-            response = await client.post(endpoint, json=results)
-            # After a successful API request
-            if response.status_code == 200:
-                print("Data successfully posted to the server.")
-                last_sent_time = current_time  # Update the in-memory last sent time
-                save_last_sent_time(last_sent_time)  # Persist the last sent time
-            else:
-                print(f"Failed to post data: {response.status_code} - {response.text}")
-        except httpx.RequestError as e:
-            print(f"An error occurred while posting data: {e}")
+        for uuid, device in results.items():
+            payload = {
+                "color": device["color"],
+                "avg_gravity": device["avg_gravity"],
+                "avg_temp_c": device["avg_temp_c"],
+            }
+            try:
+                print(f"Sending data for {device['color']} ({uuid}):", payload)
+                response = await client.post(endpoint, json=payload)
+                if response.status_code == 200:
+                    print(f"Data successfully posted for {device['color']}.")
+                    last_sent_time = current_time
+                    save_last_sent_time(last_sent_time)
+                else:
+                    print(f"Failed to post data for {device['color']}: {response.status_code} - {response.text}")
+            except httpx.RequestError as e:
+                print(f"An error occurred while posting data for {device['color']}: {e}")
 
 
 
