@@ -57,3 +57,8 @@ async def flush(client: httpx.AsyncClient) -> None:
             print(f"Queue flush failed: {response.status_code} - {response.text}")
     except httpx.RequestError as e:
         print(f"Queue flush error (still offline?): {e}")
+
+
+def queue_size() -> int:
+    """Return the number of readings currently in the offline queue."""
+    return len(_load())

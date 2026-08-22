@@ -3,6 +3,7 @@ import time
 import httpx
 import psutil
 import config
+import offline_queue
 
 
 def get_cpu_temp() -> float:
@@ -21,6 +22,7 @@ def collect() -> dict:
         "cpu_temp_c": get_cpu_temp(),
         "uptime_seconds": int(time.time() - psutil.boot_time()),
         "hostname": socket.gethostname(),
+        "offline_queue_count": offline_queue.queue_size(),
     }
 
 
