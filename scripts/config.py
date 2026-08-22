@@ -9,7 +9,7 @@ API_KEY = os.environ["API_KEY"]
 
 # Timing configurations
 SCAN_DURATION = 15  # Scan duration in seconds
-SCAN_INTERVAL = 60 * 60  # Interval between scans in seconds
+SCAN_INTERVAL = 5 * 60  # Interval between scans in seconds
 
 IGNORE_DUPLICATES = True  # Skip sending data if identical to the last sent data
 TIME_THRESHOLD = 3600 * 10  # Minimum time (in seconds) between consecutive API requests (10 hours)
