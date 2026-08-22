@@ -6,7 +6,7 @@ import statistics
 import httpx  # For sending HTTP requests
 import json  # For writing results to a file
 import config
-import queue as offline_queue
+import offline_queue
 import stats
 
 # Known Tilt hydrometer IDs

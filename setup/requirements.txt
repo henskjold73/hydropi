@@ -4,4 +4,4 @@ httpx
 flask
 psutil
 flask-cors
-python-dotenv
+python-dotenvsniffio
