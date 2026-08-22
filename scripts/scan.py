@@ -265,24 +265,26 @@ def write_results_to_file(results):
 
 async def main():
     while True:
-        scan_results = await scan_tilts()
-        print("Scan completed. Results:")
-        for uuid, result in scan_results.items():
-            print(f"UUID: {uuid}, Color: {result['color']}, Avg Gravity: {result['avg_gravity']}, "
-                  f"Avg Temp (°C): {result['avg_temp_c']}, "
-                  f"Gravity StdDev: {result['gravity_stddev']}, Temp StdDev: {result['temp_stddev']}")
+        # ── Tilt scan (best-effort) ───────────────────────────────────────────
+        try:
+            scan_results = await scan_tilts()
+            print("Scan completed. Results:")
+            for uuid, result in scan_results.items():
+                print(f"UUID: {uuid}, Color: {result['color']}, Avg Gravity: {result['avg_gravity']}, "
+                      f"Avg Temp (°C): {result['avg_temp_c']}, "
+                      f"Gravity StdDev: {result['gravity_stddev']}, Temp StdDev: {result['temp_stddev']}")
 
-        # Write results to a file
-        write_results_to_file(scan_results)
+            write_results_to_file(scan_results)
 
-        # Flush any readings queued while offline
-        async with httpx.AsyncClient() as client:
-            await offline_queue.flush(client)
+            async with httpx.AsyncClient() as client:
+                await offline_queue.flush(client)
 
-        # Post results to the endpoint
-        await post_results(scan_results)
+            await post_results(scan_results)
 
-        # Post Pi health stats
+        except Exception as e:
+            print(f"Tilt scan error (continuing): {e}")
+
+        # ── Pi telemetry — always sent, independent of Tilt ──────────────────
         async with httpx.AsyncClient() as client:
             await stats.post_stats(client)
 
