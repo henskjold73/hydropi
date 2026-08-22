@@ -1,0 +1,9 @@
+/home/horrible/hydropi/logs/scan.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}
