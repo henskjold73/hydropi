@@ -405,8 +405,7 @@ def draw_dashboard(stdscr):
 
 def main(stdscr):
     curses.curs_set(0)
-    stdscr.nodelay(True)
-    stdscr.timeout(REFRESH_S * 1000)
+    stdscr.timeout(REFRESH_S * 1000)  # getch() blocks up to REFRESH_S s, returns -1 on timeout
     curses.start_color()
     curses.use_default_colors()
     curses.init_pair(CP_GREEN,   curses.COLOR_GREEN,   -1)
@@ -425,7 +424,6 @@ def main(stdscr):
             screensaver(stdscr)
             last_screensaver = time.time()
             stdscr.timeout(REFRESH_S * 1000)
-            stdscr.nodelay(True)
             curses.curs_set(0)
 
         key = stdscr.getch()

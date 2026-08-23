@@ -11,7 +11,7 @@ Environment=PYTHONUNBUFFERED=1
 StandardOutput=append:__BASEDIR__/logs/scan.log
 StandardError=append:__BASEDIR__/logs/scan.log
 LimitNOFILE=4096
-MemoryLimit=500M
+MemoryMax=500M
 CPUQuota=50%
 
 [Install]
