@@ -227,41 +227,41 @@ def draw_hydro(w, y, x, h, bw, device):
 
     draw_box(w, y, x, h, bw, color.upper(), color_attr=c_attr)
 
-    label_row = y + 1
-    put(w, label_row, x+2, "Specific Gravity", iw, curses.A_DIM)
-
     ago      = fmt_ago(mtime)
     temp_str = f"{temp:.1f}\u00b0C" if temp is not None else ""
 
     if gravity is not None:
         sg_str = f"{gravity:.3f}"
 
-        # Stack heights: big(5) + gap(1) + mid(3) + gap(1) + age(1) = 11
-        # Available interior below label: y+2 .. y+h-2 → (h - 4) rows
-        stack_h     = BIGFONT_H + 1 + MIDFONT_H + 1 + 1
+        # Spaced label centered in box
+        label     = " S P E C I F I C   G R A V I T Y "
+        label_row = y + 1
+        lx        = x + max(2, (bw - len(label)) // 2)
+        put(w, label_row, lx, label[:iw], iw, curses.A_BOLD)
+
+        # Stack: big SG (5) + gap (1) + big temp (5) + gap (1) + age (1) = 13
+        stack_h     = BIGFONT_H + 1 + BIGFONT_H + 1 + 1
         avail_start = label_row + 1
         avail_rows  = (y + h - 2) - avail_start
         top         = avail_start + max(0, (avail_rows - stack_h) // 2)
 
-        # Big gravity digits — centered horizontally
+        # Big gravity digits — centered
         bw_sg = big_width(sg_str)
         bx_sg = x + max(2, (bw - bw_sg) // 2)
         draw_big(w, top, bx_sg, sg_str, curses.A_BOLD | c_attr)
 
-        if temp_str and top + BIGFONT_H + 1 + MIDFONT_H < y + h - 1:
-            # Medium temperature digits — centered
-            temp_y  = top + BIGFONT_H + 1
-            bw_temp = mid_width(temp_str)
+        temp_y = top + BIGFONT_H + 1
+        if temp_str and temp_y + BIGFONT_H < y + h - 1:
+            # Big temperature digits — centered, same size as gravity
+            bw_temp = big_width(temp_str)
             bx_temp = x + max(2, (bw - bw_temp) // 2)
-            draw_mid(w, temp_y, bx_temp, temp_str, curses.A_BOLD | t_attr)
+            draw_big(w, temp_y, bx_temp, temp_str, curses.A_BOLD | t_attr)
 
-            # Age as small centered text below temp
-            age_y = temp_y + MIDFONT_H + 1
+            age_y = temp_y + BIGFONT_H + 1
             if age_y < y + h - 1:
                 ax = x + max(2, (bw - len(ago)) // 2)
                 put(w, age_y, ax, ago, iw, curses.A_DIM)
         else:
-            # Not enough room for mid font — plain text at bottom
             info_row = y + h - 2
             if temp_str:
                 put(w, info_row, x+2, temp_str, iw, t_attr)
