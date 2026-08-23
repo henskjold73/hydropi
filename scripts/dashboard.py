@@ -2,7 +2,7 @@
 """
 HydroPi terminal dashboard — big digit edition.
 - Refreshes every 5 seconds.
-- Every 2 minutes runs a plasma wave screensaver.
+- Every 5 minutes runs a 15-second plasma wave screensaver.
 - Press any key to skip screensaver. Press q to quit.
 """
 
@@ -22,7 +22,8 @@ QUEUE_FILE   = BASE_DIR / "offline_queue.json"
 SENT_FILE    = BASE_DIR / "last_sent_time.json"
 
 REFRESH_S         = 5
-SCREENSAVER_AFTER = 120
+SCREENSAVER_AFTER    = 300   # seconds between screensaver runs
+SCREENSAVER_DURATION = 15    # seconds the screensaver runs before returning
 SCREENSAVER_FPS   = 15
 BOTTOM_H          = 7
 MIN_HYDRO_W       = 30
@@ -209,7 +210,8 @@ def screensaver(stdscr):
     PAIRS = [1, 2, 3, 4, 5]
     t = 0.0
     frame_time = 1.0 / SCREENSAVER_FPS
-    while True:
+    end_time = time.time() + SCREENSAVER_DURATION
+    while time.time() < end_time:
         if stdscr.getch() != -1:
             return
         t0 = time.time()
