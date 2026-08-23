@@ -64,6 +64,42 @@ def temp_attr(temp_c):
         return curses.color_pair(CP_GREEN) | curses.A_BOLD
     return curses.color_pair(CP_RED) | curses.A_BOLD
 
+# ── Medium digit font (3 rows × 3 cols each) — for temperature ───────────────
+
+MIDFONT = {
+    '0': ['▄█▄','█ █','▀█▀'],
+    '1': [' █ ',' █ ','███'],
+    '2': ['▄█▄',' ▄█','█▄▄'],
+    '3': ['▄█▄',' ▀▄','▄█▀'],
+    '4': ['█ █','███','  █'],
+    '5': ['███','█▀▄','▄█▀'],
+    '6': ['▄█ ','██▄','▀█▀'],
+    '7': ['███','  █',' █ '],
+    '8': ['▄█▄','▄█▄','▀█▀'],
+    '9': ['▄█▄','▀██',' █▀'],
+    '.': ['   ','   ',' ▄ '],
+    '°': ['▄  ','▀  ','   '],
+    'C': ['▄█▄','█  ','▀█▀'],
+    ' ': ['   ','   ','   '],
+}
+MIDFONT_H  = 3
+MIDFONT_CW = 3
+
+def mid_width(text):
+    return sum(MIDFONT_CW for _ in text)
+
+def draw_mid(w, y, x, text, attr=0):
+    """Render text in medium block digits at (y, x)."""
+    for row in range(MIDFONT_H):
+        cx = x
+        for ch in text:
+            glyph = MIDFONT.get(ch, MIDFONT[' '])
+            try:
+                w.addstr(y + row, cx, glyph[row], attr)
+            except curses.error:
+                pass
+            cx += MIDFONT_CW
+
 # ── Big digit font (5 rows × 4 cols each) ────────────────────────────────────
 
 BIGFONT = {
@@ -178,55 +214,61 @@ def put(w, y, x, text, max_w, attr=0):
         pass
 
 def draw_hydro(w, y, x, h, bw, device):
-    """Draw a Tilt hydrometer box with vertically centered big digits."""
-    iw      = bw - 4
-    color   = device.get("color", "?")
+    """Draw a Tilt hydrometer box: big SG, medium temp, centered age below."""
+    iw    = bw - 4
+    color = device.get("color", "?")
     gravity = device.get("avg_gravity")
     temp    = device.get("avg_temp_c")
     mtime   = device.get("_mtime")
 
     pair, extra = tilt_attrs(color)
     c_attr = curses.color_pair(pair) | extra
+    t_attr = temp_attr(temp)
 
     draw_box(w, y, x, h, bw, color.upper(), color_attr=c_attr)
 
-    # Interior rows: y+1 .. y+h-2 (h-2 usable rows)
-    # Reserve: top label row (y+1), bottom info row (y+h-2)
-    # Big digits go in the middle of what remains
-    inner_h   = h - 2          # rows inside border
     label_row = y + 1
-    info_row  = y + h - 2
+    put(w, label_row, x+2, "Specific Gravity", iw, curses.A_DIM)
+
+    ago      = fmt_ago(mtime)
+    temp_str = f"{temp:.1f}\u00b0C" if temp is not None else ""
 
     if gravity is not None:
-        sg_str  = f"{gravity:.3f}"
-        bw_text = big_width(sg_str)
-        bx      = x + max(2, (bw - bw_text) // 2)
+        sg_str = f"{gravity:.3f}"
 
-        # Vertically center the 5-row big digits in the space between label and info rows
-        usable_start = label_row + 1
-        usable_end   = info_row - 1
-        usable_rows  = usable_end - usable_start
-        digit_y      = usable_start + max(0, (usable_rows - BIGFONT_H) // 2)
+        # Stack heights: big(5) + gap(1) + mid(3) + gap(1) + age(1) = 11
+        # Available interior below label: y+2 .. y+h-2 → (h - 4) rows
+        stack_h     = BIGFONT_H + 1 + MIDFONT_H + 1 + 1
+        avail_start = label_row + 1
+        avail_rows  = (y + h - 2) - avail_start
+        top         = avail_start + max(0, (avail_rows - stack_h) // 2)
 
-        put(w, label_row, x+2, "Specific Gravity", iw, curses.A_DIM)
-        draw_big(w, digit_y, bx, sg_str, curses.A_BOLD | c_attr)
+        # Big gravity digits — centered horizontally
+        bw_sg = big_width(sg_str)
+        bx_sg = x + max(2, (bw - bw_sg) // 2)
+        draw_big(w, top, bx_sg, sg_str, curses.A_BOLD | c_attr)
+
+        if temp_str and top + BIGFONT_H + 1 + MIDFONT_H < y + h - 1:
+            # Medium temperature digits — centered
+            temp_y  = top + BIGFONT_H + 1
+            bw_temp = mid_width(temp_str)
+            bx_temp = x + max(2, (bw - bw_temp) // 2)
+            draw_mid(w, temp_y, bx_temp, temp_str, curses.A_BOLD | t_attr)
+
+            # Age as small centered text below temp
+            age_y = temp_y + MIDFONT_H + 1
+            if age_y < y + h - 1:
+                ax = x + max(2, (bw - len(ago)) // 2)
+                put(w, age_y, ax, ago, iw, curses.A_DIM)
+        else:
+            # Not enough room for mid font — plain text at bottom
+            info_row = y + h - 2
+            if temp_str:
+                put(w, info_row, x+2, temp_str, iw, t_attr)
+            put(w, info_row, x + bw - 2 - len(ago), ago, iw, curses.A_DIM)
     else:
         mid = y + h // 2
-        put(w, mid, x+2, "No reading", iw, curses.A_DIM)
-
-    # Temp (colored by range) + last seen age — two separate rows if space allows
-    ago      = fmt_ago(mtime)
-    temp_str = f"{temp:.1f}\u00b0C" if temp is not None else "--.-\u00b0C"
-    t_attr   = temp_attr(temp)
-
-    if h >= 13:
-        # Enough room: temp on info_row-1, age on info_row
-        put(w, info_row - 1, x+2, temp_str, iw, t_attr)
-        put(w, info_row,     x+2, ago,       iw, curses.A_DIM)
-    else:
-        # Tight: temp left, age right, same line
-        put(w, info_row, x+2, temp_str, iw, t_attr)
-        put(w, info_row, x + bw - 2 - len(ago), ago, iw, curses.A_DIM)
+        put(w, mid, x + (bw - 10) // 2, "No reading", iw, curses.A_DIM)
 
 def draw_pi(w, y, x, h, bw, s):
     iw = bw - 4
