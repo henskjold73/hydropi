@@ -5,9 +5,12 @@ import asyncio
 import statistics
 import httpx  # For sending HTTP requests
 import json  # For writing results to a file
+from pathlib import Path
 import config
 import offline_queue
 import stats
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Known Tilt hydrometer IDs
 TILT_MANUFACTURER_IDS = {
@@ -21,8 +24,8 @@ TILT_MANUFACTURER_IDS = {
     "Pink": "a495bb80c5b14b44b5121370f02d74de",
 }
 
-RESULTS_FILE = "/home/horrible/hydropi/tilt_results.json"
-LAST_SENT_FILE = "/home/horrible/hydropi/last_sent_time.json"
+RESULTS_FILE   = BASE_DIR / "tilt_results.json"
+LAST_SENT_FILE = BASE_DIR / "last_sent_time.json"
 
 last_sent_data = None
 last_sent_time = None
@@ -274,7 +277,8 @@ async def main():
                       f"Avg Temp (°C): {result['avg_temp_c']}, "
                       f"Gravity StdDev: {result['gravity_stddev']}, Temp StdDev: {result['temp_stddev']}")
 
-            write_results_to_file(scan_results)
+            if scan_results:
+                write_results_to_file(scan_results)
 
             async with httpx.AsyncClient() as client:
                 await offline_queue.flush(client)
