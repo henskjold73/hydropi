@@ -46,7 +46,7 @@ The script installs system packages, creates a Python venv, installs dependencie
 Create a `.env` file in the repo root:
 
 ```env
-API_URL=<tiltLogger endpoint from Producery>
+API_URL=<tiltLogger endpoint — see Producery Profile>
 TENANT_ID=<your-brewery-id>
 API_KEY=<your-hydropi-api-key>
 ```
@@ -65,9 +65,9 @@ This rotates `logs/scan.log` weekly and keeps 4 compressed weeks.
 
 Point the iSpindel at the Producery endpoint directly — no Pi config needed:
 
-- **Server:** `<ispindelLogger endpoint from Producery>`
+- **Server:** `<ispindelLogger endpoint — see Producery Profile>`
 - **Port:** 443
-- **Path:** `/<brewery-id>/<api-key>`
+- **Path:** `/<your-brewery-id>/<your-api-key>`
 
 The endpoint is shown in **Profile → HydroPi API key** in Producery.
 
