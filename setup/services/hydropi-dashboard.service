@@ -1,0 +1,20 @@
+[Unit]
+Description=HydroPi Terminal Dashboard
+After=multi-user.target tilt-scanner.service
+Wants=tilt-scanner.service
+
+[Service]
+Type=simple
+User=horrible
+Group=horrible
+ExecStart=/home/horrible/hydropi/venv/bin/python /home/horrible/hydropi/scripts/dashboard.py
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

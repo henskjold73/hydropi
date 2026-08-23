@@ -1,2 +1,3 @@
 tilt-scanner.service
 cloudflared.service
+hydropi-dashboard.service
