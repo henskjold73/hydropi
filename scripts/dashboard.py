@@ -26,7 +26,6 @@ SCREENSAVER_AFTER    = 300   # seconds between screensaver runs
 SCREENSAVER_DURATION = 15    # seconds the screensaver runs before returning
 SCREENSAVER_FPS   = 15
 BOTTOM_H          = 7
-MIN_HYDRO_W       = 30
 GRAD              = " ░▒▓█"
 
 # ── Big digit font (5 rows × 4 cols each) ────────────────────────────────────
@@ -142,10 +141,8 @@ def put(w, y, x, text, max_w, attr=0):
     except curses.error:
         pass
 
-# Hydro box height: border(1) + blank(1) + SG label(1) + digits(5) + blank(1) + temp+ago(1) + border(1) = 11
-HYDRO_H = 11
-
 def draw_hydro(w, y, x, h, bw, device):
+    """Draw a Tilt hydrometer box with vertically centered big digits."""
     iw      = bw - 4
     color   = device.get("color", "?")
     gravity = device.get("avg_gravity")
@@ -154,20 +151,35 @@ def draw_hydro(w, y, x, h, bw, device):
 
     draw_box(w, y, x, h, bw, color.upper())
 
+    # Interior rows: y+1 .. y+h-2 (h-2 usable rows)
+    # Reserve: top label row (y+1), bottom info row (y+h-2)
+    # Big digits go in the middle of what remains
+    inner_h   = h - 2          # rows inside border
+    label_row = y + 1
+    info_row  = y + h - 2
+
     if gravity is not None:
         sg_str  = f"{gravity:.3f}"
         bw_text = big_width(sg_str)
         bx      = x + max(2, (bw - bw_text) // 2)
-        put(w, y+1, x+2, "Specific Gravity", iw, curses.A_DIM)
-        draw_big(w, y+2, bx, sg_str, curses.A_BOLD | curses.color_pair(1))
-    else:
-        put(w, y+4, x+2, "No reading", iw, curses.A_DIM)
 
-    # Temp + last seen on same line at bottom
-    bottom_y = y + h - 2
+        # Vertically center the 5-row big digits in the space between label and info rows
+        usable_start = label_row + 1
+        usable_end   = info_row - 1
+        usable_rows  = usable_end - usable_start
+        digit_y      = usable_start + max(0, (usable_rows - BIGFONT_H) // 2)
+
+        put(w, label_row, x+2, "Specific Gravity", iw, curses.A_DIM)
+        draw_big(w, digit_y, bx, sg_str, curses.A_BOLD | curses.color_pair(1))
+    else:
+        mid = y + h // 2
+        put(w, mid, x+2, "No reading", iw, curses.A_DIM)
+
+    # Temp + last seen on same bottom line
     if temp is not None:
-        put(w, bottom_y, x+2, f"{temp:.1f}\u00b0C", iw)
-    put(w, bottom_y, x + bw - 2 - len(fmt_ago(mtime)), fmt_ago(mtime), iw, curses.A_DIM)
+        put(w, info_row, x+2, f"{temp:.1f}\u00b0C", iw)
+    ago = fmt_ago(mtime)
+    put(w, info_row, x + bw - 2 - len(ago), ago, iw, curses.A_DIM)
 
 def draw_pi(w, y, x, h, bw, s):
     iw = bw - 4
@@ -237,6 +249,8 @@ def screensaver(stdscr):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+GRID_ROWS = 2   # always 2 rows of Tilt boxes
+
 def draw_dashboard(stdscr):
     stdscr.erase()
     max_h, max_w = stdscr.getmaxyx()
@@ -256,30 +270,43 @@ def draw_dashboard(stdscr):
                 if mtime and (time.time() - mtime) < 86400:
                     devices.append(d)
 
-    cols   = max(1, max_w // (MIN_HYDRO_W + 1))
-    hyd_w  = max_w // cols
-    half_w = max_w // 2
-    by     = max_h - BOTTOM_H
+    # Header row (1) + bottom panel (BOTTOM_H) + quit hint (1)
+    header_h   = 1
+    available_h = max_h - header_h - BOTTOM_H
+
+    # Choose grid: 2, 3, or 4 columns; always GRID_ROWS rows
+    if devices:
+        cols = min(max(2, math.ceil(len(devices) / GRID_ROWS)), 4)
+    else:
+        cols = 2
+
+    box_h = available_h // GRID_ROWS
+    by    = header_h + GRID_ROWS * box_h   # where bottom panel starts
 
     # Header
     now_str = datetime.now().strftime("%H:%M:%S")
     put(stdscr, 0, 0, " HydroPi", max_w, curses.A_BOLD | curses.color_pair(3))
     put(stdscr, 0, max_w - 9, now_str, 9, curses.A_DIM)
 
-    # Hydro boxes
+    # Tilt boxes — 2-row grid filling the available space
     if devices:
         for i, dev in enumerate(devices):
             col = i % cols
             row = i // cols
-            bx  = col * hyd_w
-            dy  = 1 + row * (HYDRO_H + 1)
-            if dy + HYDRO_H >= by:
+            if row >= GRID_ROWS:
                 break
-            draw_hydro(stdscr, dy, bx, HYDRO_H, hyd_w, dev)
+            # Distribute width: last col gets any remainder pixels
+            bx    = (max_w * col) // cols
+            bx_end = (max_w * (col + 1)) // cols
+            bw    = bx_end - bx
+            dy    = header_h + row * box_h
+            draw_hydro(stdscr, dy, bx, box_h, bw, dev)
     else:
         msg = "No Tilt readings in the last 24h"
-        put(stdscr, 1 + (by - 1) // 2, (max_w - len(msg)) // 2, msg, max_w, curses.A_DIM)
+        put(stdscr, header_h + available_h // 2, (max_w - len(msg)) // 2,
+            msg, max_w, curses.A_DIM)
 
+    half_w = max_w // 2
     draw_pi     (stdscr, by, 0,      BOTTOM_H, half_w,         stats)
     draw_posting(stdscr, by, half_w, BOTTOM_H, max_w - half_w, queue, sent)
 
