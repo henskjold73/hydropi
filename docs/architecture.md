@@ -2,48 +2,55 @@
 
 ## Overview
 
-HydroPi is a system designed to integrate sensors with a Raspberry Pi to monitor mead batches. It collects data such as gravity and temperature from smart hydrometers and sends it to a Firebase backend for live updates, logging, and batch tracking.
+HydroPi is a Raspberry Pi service that bridges Tilt hydrometers to Producery via Bluetooth. It runs as a systemd service, scanning for Tilt BLE advertisements on a fixed interval and forwarding readings to the Producery API. Pi health telemetry is posted alongside each scan cycle.
+
+iSpindel hydrometers connect directly to Producery over HTTP — no Pi involvement needed beyond network routing.
 
 ## Components
 
-1. **Raspberry Pi**:
-   - Runs Python scripts (e.g., `scan.py`) to collect sensor data.
-   - Utilizes a systemd service (`tilt-scanner.service`) for automated scanning and data posting.
-   - Sends data to the Firebase Function API endpoint via HTTP POST requests.
-   - Logs data locally for debugging and redundancy (`/home/horrible/hydropi/logs`).
-2. **Sensors**:
-   - Smart hydrometers (e.g., Tilt) measure specific gravity and temperature of the mead batches.
-   - Custom sensor setups can be integrated in the future.
-3. **Firebase Functions**:
-   - Processes incoming data from the Raspberry Pi.
-   - Stores data in Firestore for real-time updates and historical tracking.
-4. **Local Logging**:
-   - Provides error and debug logs to track service operations and data transmission.
+### Raspberry Pi (`scan.py`)
+- Scans for Tilt BLE advertisements using `bleak`.
+- Forwards gravity and temperature to the `tiltLogger` Cloud Function.
+- Falls back to a local offline queue when the network is unavailable; flushes on the next successful cycle.
+- Posts Pi health stats (CPU, memory, temperature, uptime, hostname, queue depth) to the `piTelemetry` Cloud Function after each scan.
+- Runs as `tilt-scanner.service` under systemd; restarts automatically on failure.
+- Logs to `logs/scan.log`, rotated weekly.
 
-## Data Flow
+### iSpindel (direct)
+- iSpindel devices POST their native JSON payload directly to the `ispindelLogger` Cloud Function.
+- Auto-registered on first reading; assignable to a batch from the Producery UI.
 
-1. Sensor data is scanned and read by the Raspberry Pi using BLE (Bluetooth Low Energy).
-2. The data is processed locally and logged for redundancy.
-3. The Raspberry Pi sends the processed data to a Firebase Function endpoint via an HTTP POST request.
-4. Firebase Function validates the data and stores it in Firestore.
-5. Real-time updates are available through Firestore listeners for UI components or alerts.
+### Producery Cloud Functions
+- `tiltLogger` — validates and stores Tilt gravity/temperature readings per batch.
+- `ispindelLogger` — validates and stores iSpindel readings; auto-registers unknown devices.
+- `piTelemetry` — overwrites a single `piStats/latest` document so the Devices page always shows the freshest snapshot.
+- `assignTiltDevice` / `releaseTiltDevice` — link/unlink a Tilt color to a batch.
+- `assignISpindelDevice` / `releaseISpindelDevice` — link/unlink an iSpindel to a batch.
 
-## Service Management
+### Firestore
+- `breweries/{id}/batches/{id}/readings` — time-series gravity and temperature readings.
+- `breweries/{id}/tiltDevices/{color}` — current batch assignment per Tilt color.
+- `breweries/{id}/iSpindelDevices/{name}` — registered iSpindels and their batch assignments.
+- `breweries/{id}/piStats/latest` — latest Pi health snapshot.
 
-- The `tilt-scanner.service` systemd service:
-  - Automates the scanning and data posting process.
-  - Ensures the script (`scan.py`) restarts on failure.
-  - Logs output and errors to files located in `/home/horrible/hydropi/logs`.
+## Data flow
 
-## Future Enhancements
+```
+Tilt (BLE)
+    └─→ scan.py (Pi)
+            ├─→ tiltLogger  ─→ Firestore readings
+            └─→ piTelemetry ─→ Firestore piStats/latest
 
-- **Support for Additional Sensors**:
-  - Add monitoring for environmental metrics such as humidity and CO2 levels.
-- **Historical Data Visualization**:
-  - Develop a dashboard to graph trends over time for gravity, temperature, and other metrics.
-- **Alerts and Notifications**:
-  - Integrate alerting for thresholds (e.g., abnormal gravity or temperature levels).
-- **Edge Processing**:
-  - Preprocess data on the Raspberry Pi for faster insights and reduced backend load.
-- **Cloud Backup**:
-  - Implement automated backups of Firestore data to secure storage.
+iSpindel (WiFi/HTTP)
+    └─→ ispindelLogger ─→ Firestore readings
+```
+
+## Service management
+
+`tilt-scanner.service` is managed by systemd:
+
+```bash
+sudo systemctl status tilt-scanner
+sudo systemctl restart tilt-scanner
+journalctl -u tilt-scanner -f
+```

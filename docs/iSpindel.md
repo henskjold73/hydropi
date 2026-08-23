@@ -1,106 +1,72 @@
-# iSpindel HydroPi Configuration Guide
+# iSpindel Configuration Guide
 
-This guide explains how to configure your iSpindel to send data to a HydroPi endpoint, which posts it to Firebase. We use Firebase and Producery, but you can rewrite the Flask endpoint to post to another service. There are other guides available to help you connect to Brewfather and similar applications at the [iSpindel homepage](https://www.ispindel.de/docs/README_en.html).
+This guide explains how to configure an iSpindel hydrometer to send data directly to Producery.
 
 ---
 
 ## Prerequisites
 
-1. **WiFi Network**: A stable WiFi connection.
-2. **HydroPi Endpoint**: A HydroPi or other service with an accessible HTTP endpoint.
-3. **iSpindel Assembled and Firmware Installed**: Ensure the iSpindel is fully assembled and the firmware is flashed. Refer to the [iSpindel Setup Guide](https://www.ispindel.de/docs/README_en.html) if needed.
+- iSpindel assembled with firmware installed. See the [iSpindel setup guide](https://www.ispindel.de/docs/README_en.html) if needed.
+- A stable WiFi network.
+- A Producery account with a brewery workspace and an API key (found under **Profile → HydroPi API key**).
 
 ---
 
-## Configuration Steps
+## Configuration steps
 
-### Step 1: Connect to the iSpindel
+### Step 1: Enter configuration mode
 
-1. Power on your iSpindel by inserting a charged 18650 battery.
-2. The iSpindel will start in configuration mode (if it cannot connect to WiFi).
-3. Connect to the `iSpindel` WiFi network using your phone or PC.
+1. Power on the iSpindel.
+2. If it cannot connect to a known WiFi network it starts in access point mode.
+3. Connect your phone or PC to the `iSpindel` WiFi network.
+4. Open `http://192.168.4.1` in a browser.
 
-### Step 2: Access the Configuration Page
+### Step 2: Set WiFi credentials
 
-1. Open a browser and navigate to `http://192.168.4.1`.
-2. The iSpindel configuration page will appear.
+Enter your WiFi SSID and password and save. The iSpindel will restart and join your network.
 
-### Step 3: Set WiFi Credentials
+### Step 3: Configure the HTTP endpoint
 
-1. Enter the **SSID** and **Password** for your WiFi network.
-2. Save and restart the iSpindel. It will reconnect to your WiFi.
+Return to `http://192.168.4.1` and open **Configuration**. Set:
 
-### Step 4: Configure HTTP Endpoint
+| Field | Value |
+|---|---|
+| Service type | `HTTP` |
+| Server address | `<ispindelLogger endpoint — see Producery Profile>` |
+| Port | `443` |
+| Path | `/<your-brewery-id>/<your-api-key>` |
+| Interval | `900` (15 min recommended for production) |
 
-1. After saving the WiFi configuration, return to the iSpindel configuration page (`http://192.168.4.1`).
+The full endpoint and path are shown in **Profile → HydroPi API key** in Producery.
 
-2. Select **"Configuration"** from the menu.
+### Step 4: Verify
 
-3. Under the **Service Type** dropdown, select `HTTP`.
-
-4. Fill in the following fields:
-
-   - **Name**: The name of the iSpindel (e.g., `horrible-ispindel-white01`).
-   - **Interval**: How often it posts readings (e.g., `10` for testing and `7200` for production).
-   - **Server Address**: The base URL of your HTTP endpoint (e.g., `hydropi.local` or IP address).
-   - **Port**: Specify the port for your HTTP server (e.g., `5000` for HydroPi, `80` for HTTP, or `443` for HTTPS).
-   - **Path**: The specific endpoint path to send data to (e.g., `/<tenant>/<api-key>`).
-
-   Example:
-   ```
-   Server Address: horrible-hydropi.local
-   Port: 50
-   Path: /Fij2KIOf9p1CMNq56zJF/91ef0305-9532-4620-9b17-04e7d81247fb
-   ```
-
-5. Save the configuration.
-
-### Step 5: Test the Connection
-
-1. Reboot the iSpindel to apply the changes.
-2. Observe the LED on the iSpindel. A successful connection will be indicated by a series of blinks.
-3. Verify that data is being sent to your HTTP server by checking your server logs or API endpoint.
+Reboot the iSpindel. After the first successful POST the device appears automatically in the Producery **Devices** page, where it can be assigned to a batch.
 
 ---
 
-## Example HTTP Payload
+## Payload format
 
-The iSpindel sends data in JSON format. Below is an example payload:
+The iSpindel sends JSON on each interval:
 
 ```json
 {
-"name": "horrible-ispindel-white01",
-"ID": 1234567,
-"angle": 87.65,
-"temperature": 20.45,
-"battery": 3.87,
-"gravity": 1.042,
-"interval": 10
+  "name": "my-ispindel",
+  "ID": 1234567,
+  "angle": 45.2,
+  "temperature": 20.1,
+  "battery": 3.9,
+  "gravity": 1.048,
+  "RSSI": -62,
+  "interval": 900
 }
 ```
-### Field Descriptions:
 
-- `name`: The name of your iSpindel.
-- `ID`: A unique identifier for the device.
-- `angle`: The tilt angle in degrees.
-- `temperature`: Measured temperature (in Celsius).
-- `battery`: Battery voltage.
-- `gravity`: Calculated specific gravity. (Calculated from the formula in configuration)
-- `interval`: Reporting interval in seconds.
+All fields except `name`, `gravity`, and `temperature` are optional but stored when present.
 
 ---
 
-## Common Issues
+## Troubleshooting
 
-### iSpindel Not Sending Data
-- Ensure the HTTP server is accessible from your network.
-- Double-check the server address, port, and path in the configuration.
-- Verify the WiFi connection and signal strength.
-
-### Data Not Showing on Server
-- Ensure the server is configured to accept POST requests at the specified path.
-- Check server logs for incoming requests or errors.
-
----
-
-**Now your iSpindel is set up to send data to a HydroPi. Horrible brewing!**
+- **Device not appearing in Producery** — check the server address and path; verify WiFi signal.
+- **Gravity not updating** — confirm the interval hasn't been set too long for testing; check the Devices page for the last-seen timestamp.
