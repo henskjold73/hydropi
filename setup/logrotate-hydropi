@@ -1,4 +1,4 @@
-/home/horrible/hydropi/logs/scan.log {
+__BASEDIR__/logs/scan.log {
     weekly
     rotate 4
     compress

@@ -3,13 +3,13 @@ Description=Tilt Scanner Service
 After=network.target
 
 [Service]
-ExecStart=/home/horrible/hydropi/venv/bin/python /home/horrible/hydropi/scripts/scan.py
-WorkingDirectory=/home/horrible/hydropi
+ExecStart=__BASEDIR__/venv/bin/python __BASEDIR__/scripts/scan.py
+WorkingDirectory=__BASEDIR__
 Restart=always
-User=horrible
+User=__USER__
 Environment=PYTHONUNBUFFERED=1
-StandardOutput=append:/home/horrible/hydropi/logs/scan.log
-StandardError=append:/home/horrible/hydropi/logs/scan.log
+StandardOutput=append:__BASEDIR__/logs/scan.log
+StandardError=append:__BASEDIR__/logs/scan.log
 LimitNOFILE=4096
 MemoryLimit=500M
 CPUQuota=50%

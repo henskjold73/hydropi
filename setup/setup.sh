@@ -6,7 +6,7 @@
 #   --demo  Show the full visual flow with fake progress (no real changes made)
 # ─────────────────────────────────────────────────────────────────────────────
 
-BASE_DIR="/home/horrible/hydropi"
+BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SETUP_DIR="$BASE_DIR/setup"
 SERVICES_FILE="$SETUP_DIR/services.txt"
 SERVICES_DIR="$SETUP_DIR/services"
@@ -17,6 +17,7 @@ ENV_FILE="$BASE_DIR/.env"
 ENV_EXAMPLE="$BASE_DIR/.env.example"
 LOGROTATE_SRC="$SETUP_DIR/logrotate-hydropi"
 LOGROTATE_DST="/etc/logrotate.d/hydropi"
+CURRENT_USER="$(whoami)"
 
 DEMO=false
 for arg in "$@"; do
@@ -98,7 +99,6 @@ die() {
   exit 1
 }
 
-# Runs a command with a spinner. In demo mode, sleeps 3s instead.
 run_quiet() {
   local label="$1"; shift
   local spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
@@ -143,12 +143,22 @@ run_quiet() {
   return $exit_code
 }
 
+# Substitute __BASEDIR__ and __USER__ in a template file and write to dest.
+install_template() {
+  local src="$1"
+  local dst="$2"
+  sed -e "s|__BASEDIR__|$BASE_DIR|g" \
+      -e "s|__USER__|$CURRENT_USER|g" \
+      "$src" | sudo tee "$dst" > /dev/null
+}
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 clear
 banner
 
-echo -e "  ${DIM}Host: $(hostname)   $(date '+%Y-%m-%d %H:%M')${RESET}"
+echo -e "  ${DIM}Host: $(hostname)   User: $CURRENT_USER   $(date '+%Y-%m-%d %H:%M')${RESET}"
+echo -e "  ${DIM}Base: $BASE_DIR${RESET}"
 echo ""
 
 # ── Step 1: System update ─────────────────────────────────────────────────────
@@ -165,7 +175,6 @@ run_quiet "Installing python3, pip, venv, bluetooth tools" \
 step_header "Python virtual environment"
 if $DEMO; then
   run_quiet "Creating virtual environment at $VENV_DIR" true
-  run_quiet "Activating virtual environment" true
 else
   if [ ! -d "$VENV_DIR" ]; then
     run_quiet "Creating virtual environment at $VENV_DIR" python3 -m venv "$VENV_DIR" \
@@ -222,7 +231,9 @@ if $DEMO; then
   run_quiet "Installing logrotate config" true
 else
   if [ -f "$LOGROTATE_SRC" ]; then
-    run_quiet "Installing logrotate config" sudo cp "$LOGROTATE_SRC" "$LOGROTATE_DST"
+    info "Substituting paths for user '$CURRENT_USER' in logrotate config..."
+    install_template "$LOGROTATE_SRC" "$LOGROTATE_DST"
+    ok "Logrotate config installed at $LOGROTATE_DST"
   else
     warn "Logrotate config not found at $LOGROTATE_SRC — skipping"
   fi
@@ -248,8 +259,9 @@ else
       continue
     fi
 
-    sudo cp "$SERVICE_FILE" "$SYSTEMD_PATH"
-    ok "Copied $SERVICE_NAME → $SYSTEMD_PATH"
+    info "Substituting paths for user '$CURRENT_USER' in $SERVICE_NAME..."
+    install_template "$SERVICE_FILE" "$SYSTEMD_PATH"
+    ok "Installed $SERVICE_NAME → $SYSTEMD_PATH"
   done < "$SERVICES_FILE"
 
   run_quiet "Reloading systemd daemon" sudo systemctl daemon-reload

@@ -5,9 +5,9 @@ Wants=tilt-scanner.service
 
 [Service]
 Type=simple
-User=horrible
-Group=horrible
-ExecStart=/home/horrible/hydropi/venv/bin/python /home/horrible/hydropi/scripts/dashboard.py
+User=__USER__
+Group=__USER__
+ExecStart=__BASEDIR__/venv/bin/python __BASEDIR__/scripts/dashboard.py
 StandardInput=tty
 StandardOutput=tty
 TTYPath=/dev/tty1

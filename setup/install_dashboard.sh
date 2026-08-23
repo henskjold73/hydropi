@@ -5,14 +5,17 @@
 set -e
 
 BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CURRENT_USER="$(whoami)"
 SERVICE_SRC="$BASE_DIR/setup/services/hydropi-dashboard.service"
 SERVICE_DST="/etc/systemd/system/hydropi-dashboard.service"
 
 echo "→ Masking getty@tty1 so the dashboard can own the console..."
 sudo systemctl mask getty@tty1.service
 
-echo "→ Installing service file..."
-sudo cp "$SERVICE_SRC" "$SERVICE_DST"
+echo "→ Installing service file (user: $CURRENT_USER, base: $BASE_DIR)..."
+sed -e "s|__BASEDIR__|$BASE_DIR|g" \
+    -e "s|__USER__|$CURRENT_USER|g" \
+    "$SERVICE_SRC" | sudo tee "$SERVICE_DST" > /dev/null
 
 echo "→ Reloading systemd..."
 sudo systemctl daemon-reload
