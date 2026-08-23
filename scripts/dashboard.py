@@ -159,7 +159,7 @@ def pi_stats():
         temp = 0.0
     return {
         "hostname": socket.gethostname(),
-        "cpu":      psutil.cpu_percent(interval=0.2),
+        "cpu":      psutil.cpu_percent(interval=None),
         "mem":      round(psutil.virtual_memory().percent, 1),
         "temp":     temp,
         "uptime":   int(time.time() - psutil.boot_time()),
@@ -417,6 +417,7 @@ def main(stdscr):
     curses.init_pair(CP_RED,     curses.COLOR_RED,     -1)
     curses.init_pair(CP_BLACK,   curses.COLOR_BLACK,   curses.COLOR_WHITE)
 
+    psutil.cpu_percent(interval=None)  # prime the measurement
     last_screensaver = time.time()
 
     while True:
