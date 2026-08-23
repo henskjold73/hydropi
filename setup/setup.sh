@@ -12,6 +12,11 @@ SERVICES_FILE="$SETUP_DIR/services.txt"
 SERVICES_DIR="$SETUP_DIR/services"
 VENV_DIR="$BASE_DIR/venv"
 REQUIREMENTS_FILE="$SETUP_DIR/requirements.txt"
+LOGS_DIR="$BASE_DIR/logs"
+ENV_FILE="$BASE_DIR/.env"
+ENV_EXAMPLE="$BASE_DIR/.env.example"
+LOGROTATE_SRC="$SETUP_DIR/logrotate-hydropi"
+LOGROTATE_DST="/etc/logrotate.d/hydropi"
 
 DEMO=false
 for arg in "$@"; do
@@ -30,7 +35,7 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 
 # ── Step tracking ─────────────────────────────────────────────────────────────
-TOTAL_STEPS=6
+TOTAL_STEPS=8
 CURRENT_STEP=0
 ERRORS=0
 
@@ -188,7 +193,42 @@ else
   ok "Virtual environment deactivated"
 fi
 
-# ── Step 5: Service files ─────────────────────────────────────────────────────
+# ── Step 5: Directories & environment file ────────────────────────────────────
+step_header "Directories & environment file"
+if $DEMO; then
+  run_quiet "Creating logs directory" true
+  run_quiet "Checking .env file" true
+else
+  if [ ! -d "$LOGS_DIR" ]; then
+    mkdir -p "$LOGS_DIR"
+    ok "Created $LOGS_DIR"
+  else
+    ok "Logs directory already exists"
+  fi
+
+  if [ -f "$ENV_FILE" ]; then
+    ok ".env already exists — skipping"
+  elif [ -f "$ENV_EXAMPLE" ]; then
+    cp "$ENV_EXAMPLE" "$ENV_FILE"
+    warn ".env created from .env.example — edit it before starting the service"
+  else
+    warn "No .env or .env.example found — create $ENV_FILE manually"
+  fi
+fi
+
+# ── Step 6: Log rotation ──────────────────────────────────────────────────────
+step_header "Log rotation"
+if $DEMO; then
+  run_quiet "Installing logrotate config" true
+else
+  if [ -f "$LOGROTATE_SRC" ]; then
+    run_quiet "Installing logrotate config" sudo cp "$LOGROTATE_SRC" "$LOGROTATE_DST"
+  else
+    warn "Logrotate config not found at $LOGROTATE_SRC — skipping"
+  fi
+fi
+
+# ── Step 7: Service files ─────────────────────────────────────────────────────
 step_header "Registering systemd services"
 if $DEMO; then
   run_quiet "Copying service files to /etc/systemd/system" true
@@ -215,7 +255,7 @@ else
   run_quiet "Reloading systemd daemon" sudo systemctl daemon-reload
 fi
 
-# ── Step 6: Enable & start services ──────────────────────────────────────────
+# ── Step 8: Enable & start services ──────────────────────────────────────────
 step_header "Enabling & starting services"
 if $DEMO; then
   run_quiet "Enabling tilt-scanner.service" true
@@ -258,5 +298,8 @@ else
 fi
 
 echo ""
+if [ ! -f "$ENV_FILE" ] || grep -q '<your-' "$ENV_FILE" 2>/dev/null; then
+  echo -e "  ${YELLOW}⚠${RESET}  Edit ${BOLD}.env${RESET} with your brewery ID and API key before starting the service."
+fi
 echo -e "  ${DIM}Run ${RESET}${BOLD}journalctl -u tilt-scanner -f${RESET}${DIM} to watch live logs.${RESET}"
 echo ""
