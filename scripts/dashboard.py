@@ -54,6 +54,16 @@ def tilt_attrs(color_name):
     """Return (pair, extra_attr) for a named Tilt colour."""
     return TILT_COLOR_MAP.get(color_name.lower(), (CP_CYAN, 0))
 
+def temp_attr(temp_c):
+    """Return color attr based on fermentation temperature range."""
+    if temp_c is None:
+        return curses.A_DIM
+    if temp_c < 18:
+        return curses.color_pair(CP_BLUE) | curses.A_BOLD
+    if temp_c <= 22:
+        return curses.color_pair(CP_GREEN) | curses.A_BOLD
+    return curses.color_pair(CP_RED) | curses.A_BOLD
+
 # ── Big digit font (5 rows × 4 cols each) ────────────────────────────────────
 
 BIGFONT = {
@@ -204,11 +214,19 @@ def draw_hydro(w, y, x, h, bw, device):
         mid = y + h // 2
         put(w, mid, x+2, "No reading", iw, curses.A_DIM)
 
-    # Temp + last seen on same bottom line
-    if temp is not None:
-        put(w, info_row, x+2, f"{temp:.1f}\u00b0C", iw)
-    ago = fmt_ago(mtime)
-    put(w, info_row, x + bw - 2 - len(ago), ago, iw, curses.A_DIM)
+    # Temp (colored by range) + last seen age — two separate rows if space allows
+    ago      = fmt_ago(mtime)
+    temp_str = f"{temp:.1f}\u00b0C" if temp is not None else "--.-\u00b0C"
+    t_attr   = temp_attr(temp)
+
+    if h >= 13:
+        # Enough room: temp on info_row-1, age on info_row
+        put(w, info_row - 1, x+2, temp_str, iw, t_attr)
+        put(w, info_row,     x+2, ago,       iw, curses.A_DIM)
+    else:
+        # Tight: temp left, age right, same line
+        put(w, info_row, x+2, temp_str, iw, t_attr)
+        put(w, info_row, x + bw - 2 - len(ago), ago, iw, curses.A_DIM)
 
 def draw_pi(w, y, x, h, bw, s):
     iw = bw - 4
