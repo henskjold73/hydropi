@@ -21,7 +21,7 @@ RESULTS_FILE = BASE_DIR / "tilt_results.json"
 QUEUE_FILE   = BASE_DIR / "offline_queue.json"
 SENT_FILE    = BASE_DIR / "last_sent_time.json"
 
-REFRESH_S         = 5
+REFRESH_S         = 30
 SCREENSAVER_AFTER    = 300   # seconds between screensaver runs
 SCREENSAVER_DURATION = 15    # seconds the screensaver runs before returning
 SCREENSAVER_FPS   = 15
