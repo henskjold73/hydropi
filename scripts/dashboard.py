@@ -28,6 +28,32 @@ SCREENSAVER_FPS   = 15
 BOTTOM_H          = 7
 GRAD              = " ░▒▓█"
 
+# Color pair numbers
+CP_GREEN  = 1
+CP_YELLOW = 2
+CP_CYAN   = 3
+CP_MAGENTA= 4
+CP_BLUE   = 5
+CP_RED    = 6
+CP_BLACK  = 7   # black fg on white bg — visible on dark terminals
+
+# Tilt color → (pair, extra_attr)
+# Bold red reads as orange on most terminals; bold magenta reads as pink.
+TILT_COLOR_MAP = {
+    'red':    (CP_RED,    0),
+    'green':  (CP_GREEN,  0),
+    'black':  (CP_BLACK,  0),
+    'purple': (CP_MAGENTA,0),
+    'orange': (CP_RED,    curses.A_BOLD),
+    'blue':   (CP_BLUE,   0),
+    'yellow': (CP_YELLOW, 0),
+    'pink':   (CP_MAGENTA,curses.A_BOLD),
+}
+
+def tilt_attrs(color_name):
+    """Return (pair, extra_attr) for a named Tilt colour."""
+    return TILT_COLOR_MAP.get(color_name.lower(), (CP_CYAN, 0))
+
 # ── Big digit font (5 rows × 4 cols each) ────────────────────────────────────
 
 BIGFONT = {
@@ -116,21 +142,21 @@ def fmt_ago(ts):
 
 # ── Drawing ───────────────────────────────────────────────────────────────────
 
-def draw_box(w, y, x, h, bw, title=""):
+def draw_box(w, y, x, h, bw, title="", color_attr=0):
     try:
-        w.addch(y,     x,      curses.ACS_ULCORNER)
-        w.addch(y,     x+bw-1, curses.ACS_URCORNER)
-        w.addch(y+h-1, x,      curses.ACS_LLCORNER)
-        w.addch(y+h-1, x+bw-1, curses.ACS_LRCORNER)
+        w.addch(y,     x,      curses.ACS_ULCORNER, color_attr)
+        w.addch(y,     x+bw-1, curses.ACS_URCORNER, color_attr)
+        w.addch(y+h-1, x,      curses.ACS_LLCORNER, color_attr)
+        w.addch(y+h-1, x+bw-1, curses.ACS_LRCORNER, color_attr)
         for i in range(1, bw-1):
-            w.addch(y,     x+i, curses.ACS_HLINE)
-            w.addch(y+h-1, x+i, curses.ACS_HLINE)
+            w.addch(y,     x+i, curses.ACS_HLINE, color_attr)
+            w.addch(y+h-1, x+i, curses.ACS_HLINE, color_attr)
         for i in range(1, h-1):
-            w.addch(y+i, x,      curses.ACS_VLINE)
-            w.addch(y+i, x+bw-1, curses.ACS_VLINE)
+            w.addch(y+i, x,      curses.ACS_VLINE, color_attr)
+            w.addch(y+i, x+bw-1, curses.ACS_VLINE, color_attr)
         if title:
             label = f" {title} "[:bw-4]
-            w.addstr(y, x+2, label, curses.A_BOLD)
+            w.addstr(y, x+2, label, curses.A_BOLD | color_attr)
     except curses.error:
         pass
 
@@ -149,7 +175,10 @@ def draw_hydro(w, y, x, h, bw, device):
     temp    = device.get("avg_temp_c")
     mtime   = device.get("_mtime")
 
-    draw_box(w, y, x, h, bw, color.upper())
+    pair, extra = tilt_attrs(color)
+    c_attr = curses.color_pair(pair) | extra
+
+    draw_box(w, y, x, h, bw, color.upper(), color_attr=c_attr)
 
     # Interior rows: y+1 .. y+h-2 (h-2 usable rows)
     # Reserve: top label row (y+1), bottom info row (y+h-2)
@@ -170,7 +199,7 @@ def draw_hydro(w, y, x, h, bw, device):
         digit_y      = usable_start + max(0, (usable_rows - BIGFONT_H) // 2)
 
         put(w, label_row, x+2, "Specific Gravity", iw, curses.A_DIM)
-        draw_big(w, digit_y, bx, sg_str, curses.A_BOLD | curses.color_pair(1))
+        draw_big(w, digit_y, bx, sg_str, curses.A_BOLD | c_attr)
     else:
         mid = y + h // 2
         put(w, mid, x+2, "No reading", iw, curses.A_DIM)
@@ -320,11 +349,13 @@ def main(stdscr):
     stdscr.timeout(REFRESH_S * 1000)
     curses.start_color()
     curses.use_default_colors()
-    curses.init_pair(1, curses.COLOR_GREEN,   -1)
-    curses.init_pair(2, curses.COLOR_YELLOW,  -1)
-    curses.init_pair(3, curses.COLOR_CYAN,    -1)
-    curses.init_pair(4, curses.COLOR_MAGENTA, -1)
-    curses.init_pair(5, curses.COLOR_BLUE,    -1)
+    curses.init_pair(CP_GREEN,   curses.COLOR_GREEN,   -1)
+    curses.init_pair(CP_YELLOW,  curses.COLOR_YELLOW,  -1)
+    curses.init_pair(CP_CYAN,    curses.COLOR_CYAN,    -1)
+    curses.init_pair(CP_MAGENTA, curses.COLOR_MAGENTA, -1)
+    curses.init_pair(CP_BLUE,    curses.COLOR_BLUE,    -1)
+    curses.init_pair(CP_RED,     curses.COLOR_RED,     -1)
+    curses.init_pair(CP_BLACK,   curses.COLOR_BLACK,   curses.COLOR_WHITE)
 
     last_screensaver = time.time()
 
