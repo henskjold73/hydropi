@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-HydroPi terminal dashboard.
+HydroPi terminal dashboard — big digit edition.
 - Refreshes every 5 seconds.
-- Every 2 minutes runs a plasma wave screensaver (OLED burn-in prevention).
-- Press any key to skip the screensaver.
-- Press q to quit.
+- Every 2 minutes runs a plasma wave screensaver.
+- Press any key to skip screensaver. Press q to quit.
 """
 
 import curses
@@ -17,18 +16,53 @@ import psutil
 from datetime import datetime
 from pathlib import Path
 
-BASE_DIR   = Path(__file__).resolve().parent.parent
+BASE_DIR     = Path(__file__).resolve().parent.parent
 RESULTS_FILE = BASE_DIR / "tilt_results.json"
 QUEUE_FILE   = BASE_DIR / "offline_queue.json"
 SENT_FILE    = BASE_DIR / "last_sent_time.json"
 
-REFRESH_S          = 5
-SCREENSAVER_AFTER  = 120   # seconds between screensaver runs
-SCREENSAVER_FPS    = 15
-BOTTOM_H = 7
-HYDRO_H  = 6
-MIN_HYDRO_W = 22
-GRAD = " ░▒▓█"
+REFRESH_S         = 5
+SCREENSAVER_AFTER = 120
+SCREENSAVER_FPS   = 15
+BOTTOM_H          = 7
+MIN_HYDRO_W       = 30
+GRAD              = " ░▒▓█"
+
+# ── Big digit font (5 rows × 4 cols each) ────────────────────────────────────
+
+BIGFONT = {
+    '0': ['▄██▄','█  █','█  █','█  █','▀██▀'],
+    '1': [' ██ ','███ ',' ██ ',' ██ ','████'],
+    '2': ['███▄','   █','▄██▀','█   ','████'],
+    '3': ['███▄','   █',' ██▄','   █','███▀'],
+    '4': ['█  █','█  █','████','   █','   █'],
+    '5': ['████','█   ','███▄','   █','███▀'],
+    '6': ['▄██▄','█   ','███▄','█  █','▀██▀'],
+    '7': ['████','  █ ',' █  ',' █  ',' █  '],
+    '8': ['▄██▄','█  █','▄██▄','█  █','▀██▀'],
+    '9': ['▄██▄','█  █','▀███','   █','▄██▀'],
+    '.': ['    ','    ','    ',' ▄  ',' ▀  '],
+    '°': [' ▄  ','▐ ▌ ',' ▀  ','    ','    '],
+    'C': ['▄██▄','█   ','█   ','█   ','▀██▀'],
+    ' ': ['    ','    ','    ','    ','    '],
+}
+BIGFONT_H  = 5
+BIGFONT_CW = 4   # char width including trailing space
+
+def big_width(text):
+    return sum(BIGFONT_CW for _ in text)
+
+def draw_big(w, y, x, text, attr=0):
+    """Render text in big block digits at (y, x)."""
+    for row in range(BIGFONT_H):
+        cx = x
+        for ch in text:
+            glyph = BIGFONT.get(ch, BIGFONT[' '])
+            try:
+                w.addstr(y + row, cx, glyph[row], attr)
+            except curses.error:
+                pass
+            cx += BIGFONT_CW
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -107,15 +141,32 @@ def put(w, y, x, text, max_w, attr=0):
     except curses.error:
         pass
 
+# Hydro box height: border(1) + blank(1) + SG label(1) + digits(5) + blank(1) + temp+ago(1) + border(1) = 11
+HYDRO_H = 11
+
 def draw_hydro(w, y, x, h, bw, device):
-    iw = bw - 4
-    draw_box(w, y, x, h, bw, device.get("color", "?"))
-    g = device.get("avg_gravity")
-    t = device.get("avg_temp_c")
-    m = device.get("_mtime")
-    if g is not None: put(w, y+1, x+2, f"SG    {g:.3f}", iw, curses.A_BOLD)
-    if t is not None: put(w, y+2, x+2, f"Temp  {t:.1f}\u00b0C", iw)
-    put(w, y+3, x+2, fmt_ago(m), iw, curses.A_DIM)
+    iw      = bw - 4
+    color   = device.get("color", "?")
+    gravity = device.get("avg_gravity")
+    temp    = device.get("avg_temp_c")
+    mtime   = device.get("_mtime")
+
+    draw_box(w, y, x, h, bw, color.upper())
+
+    if gravity is not None:
+        sg_str  = f"{gravity:.3f}"
+        bw_text = big_width(sg_str)
+        bx      = x + max(2, (bw - bw_text) // 2)
+        put(w, y+1, x+2, "Specific Gravity", iw, curses.A_DIM)
+        draw_big(w, y+2, bx, sg_str, curses.A_BOLD | curses.color_pair(1))
+    else:
+        put(w, y+4, x+2, "No reading", iw, curses.A_DIM)
+
+    # Temp + last seen on same line at bottom
+    bottom_y = y + h - 2
+    if temp is not None:
+        put(w, bottom_y, x+2, f"{temp:.1f}\u00b0C", iw)
+    put(w, bottom_y, x + bw - 2 - len(fmt_ago(mtime)), fmt_ago(mtime), iw, curses.A_DIM)
 
 def draw_pi(w, y, x, h, bw, s):
     iw = bw - 4
@@ -134,7 +185,7 @@ def draw_posting(w, y, x, h, bw, queue, sent):
             curses.A_BOLD | curses.color_pair(2))
         colors = ", ".join(sorted({r.get("color","?") for r in queue}))
         oldest = min((r.get("recordedAt",0)/1000 for r in queue), default=None)
-        put(w, y+2, x+2, f"Colors: {colors}",    iw)
+        put(w, y+2, x+2, f"Colors: {colors}",       iw)
         put(w, y+3, x+2, f"Oldest: {fmt_ago(oldest)}", iw)
     else:
         draw_box(w, y, x, h, bw, "Last Post")
@@ -152,33 +203,23 @@ def draw_posting(w, y, x, h, bw, queue, sent):
 # ── Screensaver ───────────────────────────────────────────────────────────────
 
 def screensaver(stdscr):
-    """Plasma wave across all pixels. Any key returns to dashboard."""
     curses.curs_set(0)
     stdscr.nodelay(True)
     max_h, max_w = stdscr.getmaxyx()
-
-    # Build palette: cycle through available color pairs
     PAIRS = [1, 2, 3, 4, 5]
-
     t = 0.0
     frame_time = 1.0 / SCREENSAVER_FPS
-
     while True:
-        k = stdscr.getch()
-        if k != -1:
+        if stdscr.getch() != -1:
             return
-
         t0 = time.time()
         stdscr.erase()
-
         for y in range(max_h - 1):
             for x in range(max_w - 1):
-                # Plasma: sum of overlapping sine waves
                 v = (math.sin(x * 0.12 + t)
                    + math.sin(y * 0.18 + t * 0.8)
                    + math.sin((x + y) * 0.10 + t * 0.6)
                    + math.sin(math.sqrt(x*x + y*y) * 0.09 + t)) / 4.0
-                # v in [-1, 1] → [0, 1]
                 norm = (v + 1.0) / 2.0
                 char = GRAD[int(norm * (len(GRAD) - 1))]
                 pair = PAIRS[int(norm * (len(PAIRS) - 1))]
@@ -186,26 +227,23 @@ def screensaver(stdscr):
                     stdscr.addch(y, x, char, curses.color_pair(pair))
                 except curses.error:
                     pass
-
         stdscr.refresh()
         t += 0.12
-
         elapsed = time.time() - t0
-        sleep   = frame_time - elapsed
-        if sleep > 0:
-            time.sleep(sleep)
+        if frame_time - elapsed > 0:
+            time.sleep(frame_time - elapsed)
 
-# ── Main loop ─────────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def draw_dashboard(stdscr):
     stdscr.erase()
     max_h, max_w = stdscr.getmaxyx()
 
-    results  = load_json(RESULTS_FILE) or {}
-    queue    = load_json(QUEUE_FILE)   or []
-    sent     = load_json(SENT_FILE)
-    stats    = pi_stats()
-    mtime    = file_mtime(RESULTS_FILE)
+    results = load_json(RESULTS_FILE) or {}
+    queue   = load_json(QUEUE_FILE)   or []
+    sent    = load_json(SENT_FILE)
+    stats   = pi_stats()
+    mtime   = file_mtime(RESULTS_FILE)
 
     devices = []
     if isinstance(results, dict):
@@ -240,7 +278,6 @@ def draw_dashboard(stdscr):
         msg = "No Tilt readings in the last 24h"
         put(stdscr, 1 + (by - 1) // 2, (max_w - len(msg)) // 2, msg, max_w, curses.A_DIM)
 
-    # Bottom row
     draw_pi     (stdscr, by, 0,      BOTTOM_H, half_w,         stats)
     draw_posting(stdscr, by, half_w, BOTTOM_H, max_w - half_w, queue, sent)
 
@@ -252,7 +289,6 @@ def main(stdscr):
     curses.curs_set(0)
     stdscr.nodelay(True)
     stdscr.timeout(REFRESH_S * 1000)
-
     curses.start_color()
     curses.use_default_colors()
     curses.init_pair(1, curses.COLOR_GREEN,   -1)
@@ -264,7 +300,6 @@ def main(stdscr):
     last_screensaver = time.time()
 
     while True:
-        # Screensaver check
         if time.time() - last_screensaver >= SCREENSAVER_AFTER:
             screensaver(stdscr)
             last_screensaver = time.time()
@@ -276,7 +311,7 @@ def main(stdscr):
         if key == ord('q'):
             break
         if key != -1:
-            last_screensaver = time.time()  # reset on any activity
+            last_screensaver = time.time()
 
         draw_dashboard(stdscr)
 
