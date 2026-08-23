@@ -8,7 +8,6 @@ Raspberry Pi bridge that reads Tilt hydrometer data over Bluetooth and forwards 
 - **iSpindel hydrometers** — iSpindel devices POST directly to the Producery `ispindelLogger` endpoint (no Pi involvement beyond routing).
 - **Pi telemetry** — after each scan, posts CPU %, memory %, CPU temperature, uptime, hostname, and offline queue depth to the `piTelemetry` endpoint so the Producery Devices page shows Pi health.
 - **Offline queue** — failed Tilt readings are stored in `offline_queue.json` and sent as a bulk request (with original timestamps) when connectivity is restored.
-- **Remote access** — Pi is reachable over Cloudflare Tunnel at `ssh horrible@horribleclaw.hydropi.io`.
 
 ## Repository layout
 
@@ -44,10 +43,10 @@ The script installs system packages, creates a Python venv, installs dependencie
 
 ### 2. Configure environment
 
-Create `/home/horrible/hydropi/.env`:
+Create a `.env` file in the repo root:
 
 ```env
-API_URL=https://tiltlogger-p4exxa3jhq-ew.a.run.app
+API_URL=<tiltLogger endpoint from Producery>
 TENANT_ID=<your-brewery-id>
 API_KEY=<your-hydropi-api-key>
 ```
@@ -66,7 +65,7 @@ This rotates `logs/scan.log` weekly and keeps 4 compressed weeks.
 
 Point the iSpindel at the Producery endpoint directly — no Pi config needed:
 
-- **Server:** `ispindellogger-p4exxa3jhq-ew.a.run.app`
+- **Server:** `<ispindelLogger endpoint from Producery>`
 - **Port:** 443
 - **Path:** `/<brewery-id>/<api-key>`
 
